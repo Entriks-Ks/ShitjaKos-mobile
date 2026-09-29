@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '@/components/AppIcon';
@@ -10,7 +10,6 @@ import { countries, countryById } from '@/constants/places';
 import { ApiError, currentApiToken, mediaUrl } from '@/lib/api';
 import { useSession } from '@/lib/auth';
 import { useBusinesses } from '@/lib/businesses';
-import { useMine } from '@/lib/mine';
 import {
   apiCity,
   createListing,
@@ -23,6 +22,7 @@ import {
   uploadListingPhoto,
   type CategoryAttribute,
 } from '@/lib/market';
+import { useMine } from '@/lib/mine';
 
 const green = '#1f7a46';
 const ink = '#1a2e24';
@@ -36,10 +36,7 @@ const conditions = [
   { id: 'FOR_PARTS', label: 'FOR PARTS' },
 ];
 
-const intents = [
-  { id: 'FOR_SALE', label: 'For sale' },
-  { id: 'WANTED', label: 'Wanted — looking to buy' },
-];
+
 
 function countryForCity(city: string) {
   return countries.find((country) => (country.cities as readonly string[]).includes(city));
@@ -97,7 +94,6 @@ export default function PublishScreen() {
   const [price, setPrice] = useState(emptyArticle.price);
   const [city, setCity] = useState(emptyArticle.city);
   const [countryId, setCountryId] = useState('xk');
-  const [intent, setIntent] = useState('FOR_SALE');
   const [owner, setOwner] = useState('personal');
   const [negotiable, setNegotiable] = useState(false);
   const [phone, setPhone] = useState('');
@@ -106,7 +102,7 @@ export default function PublishScreen() {
   const [photos, setPhotos] = useState<string[]>(emptyArticle.photos);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [groups, setGroups] = useState<LiveCategoryGroup[]>(() => localCategoryGroups('en'));
-  const [sheet, setSheet] = useState<'category' | 'condition' | 'city' | 'country' | 'intent' | 'owner' | null>(null);
+  const [sheet, setSheet] = useState<'category' | 'condition' | 'city' | 'country' | 'owner' | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -116,7 +112,7 @@ export default function PublishScreen() {
         const next = groupCategories(items, 'en');
         if (!cancel && next.length) setGroups(next);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancel = true;
     };
@@ -150,7 +146,6 @@ export default function PublishScreen() {
       setPrice(emptyArticle.price);
       setCity(emptyArticle.city);
       setCountryId('xk');
-      setIntent('FOR_SALE');
       setOwner('personal');
       setNegotiable(false);
       setPhone('');
@@ -173,7 +168,6 @@ export default function PublishScreen() {
         setPrice(existing.price);
         setCity(existing.city || 'Prishtina');
         setCountryId(countryForCity(existing.city)?.id ?? 'xk');
-        setIntent(existing.intent === 'WANTED' ? 'WANTED' : 'FOR_SALE');
         setOwner(existing.owner || 'personal');
         setNegotiable(existing.negotiable);
         setPhone(existing.contactPhone || '');
@@ -205,7 +199,7 @@ export default function PublishScreen() {
     );
   }
 
-  const intentLabel = intents.find((item) => item.id === intent)?.label ?? 'For sale';
+
   const conditionLabel = conditions.find((item) => item.id === condition)?.label ?? 'USED';
   const country = countryById(countryId) ?? countries[0];
   const ownerBusiness = businesses.find((item) => item.id === owner);
@@ -251,7 +245,6 @@ export default function PublishScreen() {
     return {
       owner,
       categoryId,
-      intent,
       title: title.trim(),
       description: description.trim(),
       price: amount.toFixed(2),
@@ -441,13 +434,6 @@ export default function PublishScreen() {
 
           <View style={styles.pair}>
             <View style={styles.pairItem}>
-              <FieldLabel text="Listing intent" />
-              <Pressable style={styles.select} onPress={() => setSheet('intent')}>
-                <Text style={styles.selectText} numberOfLines={1}>{intentLabel}</Text>
-                <AppIcon name="chevronDown" size={16} color="#8a938c" />
-              </Pressable>
-            </View>
-            <View style={styles.pairItem}>
               <FieldLabel text="Publish as" />
               <Pressable style={styles.select} disabled={!!articleId} onPress={() => setSheet('owner')}>
                 <Text style={styles.selectText} numberOfLines={1}>{ownerLabel}</Text>
@@ -616,46 +602,31 @@ export default function PublishScreen() {
 
       <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
         <Pressable style={styles.backdrop} onPress={() => setSheet(null)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <Pressable style={styles.sheet} onPress={() => { }}>
             <Text style={styles.sheetTitle}>
               {sheet === 'category'
                 ? 'Category'
                 : sheet === 'condition'
                   ? 'Condition'
-                  : sheet === 'intent'
-                    ? 'Listing intent'
-                    : sheet === 'owner'
-                      ? 'Publish as'
-                      : sheet === 'country'
-                        ? 'Country'
-                        : 'City'}
+                  : sheet === 'owner'
+                    ? 'Publish as'
+                    : sheet === 'country'
+                      ? 'Country'
+                      : 'City'}
             </Text>
             <ScrollView style={styles.sheetList} keyboardShouldPersistTaps="handled">
               {sheet === 'condition'
                 ? conditions.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.row}
-                      onPress={() => {
-                        setCondition(item.id);
-                        setSheet(null);
-                      }}>
-                      <Text style={[styles.rowText, condition === item.id && styles.rowOn]}>{item.label}</Text>
-                    </Pressable>
-                  ))
-                : null}
-              {sheet === 'intent'
-                ? intents.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.row}
-                      onPress={() => {
-                        setIntent(item.id);
-                        setSheet(null);
-                      }}>
-                      <Text style={[styles.rowText, intent === item.id && styles.rowOn]}>{item.label}</Text>
-                    </Pressable>
-                  ))
+                  <Pressable
+                    key={item.id}
+                    style={styles.row}
+                    onPress={() => {
+                      setCondition(item.id);
+                      setSheet(null);
+                    }}>
+                    <Text style={[styles.rowText, condition === item.id && styles.rowOn]}>{item.label}</Text>
+                  </Pressable>
+                ))
                 : null}
               {sheet === 'owner' ? (
                 <>
@@ -685,56 +656,56 @@ export default function PublishScreen() {
               ) : null}
               {sheet === 'country'
                 ? countries.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.row}
-                      onPress={() => {
-                        setCountryId(item.id);
-                        setCity(item.cities[0]);
-                        setSheet(null);
-                      }}>
-                      <Text style={[styles.rowText, countryId === item.id && styles.rowOn]}>{item.names.en}</Text>
-                    </Pressable>
-                  ))
+                  <Pressable
+                    key={item.id}
+                    style={styles.row}
+                    onPress={() => {
+                      setCountryId(item.id);
+                      setCity(item.cities[0]);
+                      setSheet(null);
+                    }}>
+                    <Text style={[styles.rowText, countryId === item.id && styles.rowOn]}>{item.names.en}</Text>
+                  </Pressable>
+                ))
                 : null}
               {sheet === 'city'
                 ? country.cities.map((item) => (
-                    <Pressable
-                      key={item}
-                      style={styles.row}
-                      onPress={() => {
-                        setCity(item);
-                        setSheet(null);
-                      }}>
-                      <Text style={[styles.rowText, city === item && styles.rowOn]}>{item}</Text>
-                    </Pressable>
-                  ))
+                  <Pressable
+                    key={item}
+                    style={styles.row}
+                    onPress={() => {
+                      setCity(item);
+                      setSheet(null);
+                    }}>
+                    <Text style={[styles.rowText, city === item && styles.rowOn]}>{item}</Text>
+                  </Pressable>
+                ))
                 : null}
               {sheet === 'category'
                 ? groups.map((groupItem) => {
-                    const open = openGroup === groupItem.id;
-                    return (
-                      <View key={groupItem.id}>
-                        <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : groupItem.id)}>
-                          <Text style={styles.rowText}>{groupItem.label}</Text>
-                        </Pressable>
-                        {open
-                          ? groupItem.children.map((child) => (
-                              <Pressable
-                                key={child.id}
-                                style={[styles.row, styles.nested]}
-                                onPress={() => {
-                                  if (child.id !== categoryId) setAttrs({});
-                                  setCategoryId(child.id);
-                                  setSheet(null);
-                                }}>
-                                <Text style={[styles.rowText, categoryId === child.id && styles.rowOn]}>{child.label}</Text>
-                              </Pressable>
-                            ))
-                          : null}
-                      </View>
-                    );
-                  })
+                  const open = openGroup === groupItem.id;
+                  return (
+                    <View key={groupItem.id}>
+                      <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : groupItem.id)}>
+                        <Text style={styles.rowText}>{groupItem.label}</Text>
+                      </Pressable>
+                      {open
+                        ? groupItem.children.map((child) => (
+                          <Pressable
+                            key={child.id}
+                            style={[styles.row, styles.nested]}
+                            onPress={() => {
+                              if (child.id !== categoryId) setAttrs({});
+                              setCategoryId(child.id);
+                              setSheet(null);
+                            }}>
+                            <Text style={[styles.rowText, categoryId === child.id && styles.rowOn]}>{child.label}</Text>
+                          </Pressable>
+                        ))
+                        : null}
+                    </View>
+                  );
+                })
                 : null}
             </ScrollView>
           </Pressable>

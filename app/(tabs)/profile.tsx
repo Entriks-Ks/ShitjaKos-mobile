@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { router, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { AppIcon, type AppIconName } from '@/components/AppIcon';
 import { AuthScreen } from '@/components/AuthScreen';
 import { LoginForm } from '@/components/LoginForm';
@@ -391,39 +392,35 @@ export default function ProfileScreen() {
         ) : null}
       </ScrollView>
 
-      <Modal visible={placeSheet !== null} transparent animationType="slide" onRequestClose={() => setPlaceSheet(null)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setPlaceSheet(null)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>{placeSheet === 'country' ? 'Country' : 'City'}</Text>
-            <ScrollView style={styles.sheetList} keyboardShouldPersistTaps="handled">
-              {placeSheet === 'country'
-                ? countries.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.sheetRow}
-                      onPress={() => {
-                        setCountryId(item.id);
-                        if (!(item.cities as readonly string[]).includes(city)) setCity(item.cities[0]);
-                        setPlaceSheet(null);
-                      }}>
-                      <Text style={[styles.sheetText, countryId === item.id && styles.sheetTextOn]}>{item.names.en}</Text>
-                    </Pressable>
-                  ))
-                : country.cities.map((item) => (
-                    <Pressable
-                      key={item}
-                      style={styles.sheetRow}
-                      onPress={() => {
-                        setCity(item);
-                        setPlaceSheet(null);
-                      }}>
-                      <Text style={[styles.sheetText, city === item && styles.sheetTextOn]}>{item}</Text>
-                    </Pressable>
-                  ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <BottomSheet visible={placeSheet !== null} onClose={() => setPlaceSheet(null)}>
+        <Text style={styles.sheetTitle}>{placeSheet === 'country' ? 'Country' : 'City'}</Text>
+        <ScrollView style={styles.sheetList} keyboardShouldPersistTaps="handled">
+          {placeSheet === 'country'
+            ? countries.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={styles.sheetRow}
+                  onPress={() => {
+                    setCountryId(item.id);
+                    if (!(item.cities as readonly string[]).includes(city)) setCity(item.cities[0]);
+                    setPlaceSheet(null);
+                  }}>
+                  <Text style={[styles.sheetText, countryId === item.id && styles.sheetTextOn]}>{item.names.en}</Text>
+                </Pressable>
+              ))
+            : country.cities.map((item) => (
+                <Pressable
+                  key={item}
+                  style={styles.sheetRow}
+                  onPress={() => {
+                    setCity(item);
+                    setPlaceSheet(null);
+                  }}>
+                  <Text style={[styles.sheetText, city === item && styles.sheetTextOn]}>{item}</Text>
+                </Pressable>
+              ))}
+        </ScrollView>
+      </BottomSheet>
 
       <Modal visible={deleteTarget !== null} transparent animationType="fade" onRequestClose={() => setDeleteTarget(null)}>
         <Pressable style={styles.backdrop} onPress={() => setDeleteTarget(null)}>
@@ -724,19 +721,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: ink,
     fontWeight: '600',
-  },
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(23, 40, 32, 0.35)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    maxHeight: '70%',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingTop: 16,
-    paddingBottom: 28,
   },
   sheetTitle: {
     paddingHorizontal: 16,

@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { AppIcon } from '@/components/AppIcon';
 import { localCategoryGroups, type LiveCategoryGroup } from '@/constants/catalog';
 import { countries, countryById } from '@/constants/places';
@@ -600,117 +601,113 @@ export default function PublishScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSheet(null)}>
-          <Pressable style={styles.sheet} onPress={() => { }}>
-            <Text style={styles.sheetTitle}>
-              {sheet === 'category'
-                ? 'Category'
-                : sheet === 'condition'
-                  ? 'Condition'
-                  : sheet === 'owner'
-                    ? 'Publish as'
-                    : sheet === 'country'
-                      ? 'Country'
-                      : 'City'}
-            </Text>
-            <ScrollView style={styles.sheetList} keyboardShouldPersistTaps="handled">
-              {sheet === 'condition'
-                ? conditions.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.row}
-                    onPress={() => {
-                      setCondition(item.id);
-                      setSheet(null);
-                    }}>
-                    <Text style={[styles.rowText, condition === item.id && styles.rowOn]}>{item.label}</Text>
+      <BottomSheet visible={sheet !== null} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>
+          {sheet === 'category'
+            ? 'Category'
+            : sheet === 'condition'
+              ? 'Condition'
+              : sheet === 'owner'
+                ? 'Publish as'
+                : sheet === 'country'
+                  ? 'Country'
+                  : 'City'}
+        </Text>
+        <ScrollView style={styles.sheetList} keyboardShouldPersistTaps="handled">
+          {sheet === 'condition'
+            ? conditions.map((item) => (
+              <Pressable
+                key={item.id}
+                style={styles.row}
+                onPress={() => {
+                  setCondition(item.id);
+                  setSheet(null);
+                }}>
+                <Text style={[styles.rowText, condition === item.id && styles.rowOn]}>{item.label}</Text>
+              </Pressable>
+            ))
+            : null}
+          {sheet === 'owner' ? (
+            <>
+              <Pressable
+                style={styles.row}
+                onPress={() => {
+                  setOwner('personal');
+                  setSheet(null);
+                }}>
+                <Text style={[styles.rowText, owner === 'personal' && styles.rowOn]}>Me — private seller</Text>
+              </Pressable>
+              {businesses.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={styles.row}
+                  onPress={() => {
+                    setOwner(item.id);
+                    setSheet(null);
+                  }}>
+                  <Text style={[styles.rowText, owner === item.id && styles.rowOn]}>
+                    {item.publicName}
+                    {item.reviewStatus !== 'APPROVED' ? ' (review pending)' : ''}
+                  </Text>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
+          {sheet === 'country'
+            ? countries.map((item) => (
+              <Pressable
+                key={item.id}
+                style={styles.row}
+                onPress={() => {
+                  setCountryId(item.id);
+                  setCity(item.cities[0]);
+                  setSheet(null);
+                }}>
+                <Text style={[styles.rowText, countryId === item.id && styles.rowOn]}>{item.names.en}</Text>
+              </Pressable>
+            ))
+            : null}
+          {sheet === 'city'
+            ? country.cities.map((item) => (
+              <Pressable
+                key={item}
+                style={styles.row}
+                onPress={() => {
+                  setCity(item);
+                  setSheet(null);
+                }}>
+                <Text style={[styles.rowText, city === item && styles.rowOn]}>{item}</Text>
+              </Pressable>
+            ))
+            : null}
+          {sheet === 'category'
+            ? groups.map((groupItem) => {
+              const open = openGroup === groupItem.id;
+              return (
+                <View key={groupItem.id}>
+                  <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : groupItem.id)}>
+                    <Text style={styles.rowText}>{groupItem.label}</Text>
                   </Pressable>
-                ))
-                : null}
-              {sheet === 'owner' ? (
-                <>
-                  <Pressable
-                    style={styles.row}
-                    onPress={() => {
-                      setOwner('personal');
-                      setSheet(null);
-                    }}>
-                    <Text style={[styles.rowText, owner === 'personal' && styles.rowOn]}>Me — private seller</Text>
-                  </Pressable>
-                  {businesses.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.row}
-                      onPress={() => {
-                        setOwner(item.id);
-                        setSheet(null);
-                      }}>
-                      <Text style={[styles.rowText, owner === item.id && styles.rowOn]}>
-                        {item.publicName}
-                        {item.reviewStatus !== 'APPROVED' ? ' (review pending)' : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </>
-              ) : null}
-              {sheet === 'country'
-                ? countries.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.row}
-                    onPress={() => {
-                      setCountryId(item.id);
-                      setCity(item.cities[0]);
-                      setSheet(null);
-                    }}>
-                    <Text style={[styles.rowText, countryId === item.id && styles.rowOn]}>{item.names.en}</Text>
-                  </Pressable>
-                ))
-                : null}
-              {sheet === 'city'
-                ? country.cities.map((item) => (
-                  <Pressable
-                    key={item}
-                    style={styles.row}
-                    onPress={() => {
-                      setCity(item);
-                      setSheet(null);
-                    }}>
-                    <Text style={[styles.rowText, city === item && styles.rowOn]}>{item}</Text>
-                  </Pressable>
-                ))
-                : null}
-              {sheet === 'category'
-                ? groups.map((groupItem) => {
-                  const open = openGroup === groupItem.id;
-                  return (
-                    <View key={groupItem.id}>
-                      <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : groupItem.id)}>
-                        <Text style={styles.rowText}>{groupItem.label}</Text>
+                  {open
+                    ? groupItem.children.map((child) => (
+                      <Pressable
+                        key={child.id}
+                        style={[styles.row, styles.nested]}
+                        onPress={() => {
+                          if (child.id !== categoryId) setAttrs({});
+                          setCategoryId(child.id);
+                          setSheet(null);
+                        }}>
+                        <Text style={[styles.rowText, categoryId === child.id && styles.rowOn]}>{child.label}</Text>
                       </Pressable>
-                      {open
-                        ? groupItem.children.map((child) => (
-                          <Pressable
-                            key={child.id}
-                            style={[styles.row, styles.nested]}
-                            onPress={() => {
-                              if (child.id !== categoryId) setAttrs({});
-                              setCategoryId(child.id);
-                              setSheet(null);
-                            }}>
-                            <Text style={[styles.rowText, categoryId === child.id && styles.rowOn]}>{child.label}</Text>
-                          </Pressable>
-                        ))
-                        : null}
-                    </View>
-                  );
-                })
-                : null}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+                    ))
+                    : null}
+                </View>
+              );
+            })
+            : null}
+        </ScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -1109,19 +1106,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#8a938c',
     fontSize: 12,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(23, 40, 32, 0.35)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    maxHeight: '70%',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingTop: 16,
-    paddingBottom: 28,
   },
   sheetTitle: {
     paddingHorizontal: 16,

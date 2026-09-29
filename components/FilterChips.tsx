@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { AppIcon, type AppIconName } from '@/components/AppIcon';
 import { groupCategoryLabel, localCategoryGroups, type LiveCategoryGroup } from '@/constants/catalog';
 import { homeCopy, searchCities, type HomeLocale } from '@/constants/home';
@@ -119,34 +120,30 @@ export function FilterChips({
           <Pressable style={styles.drawerRest} onPress={() => setOpen(null)} />
         </View>
       </Modal>
-      <Modal visible={open === 'city' || open === 'sort'} transparent animationType="fade" onRequestClose={() => setOpen(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(null)}>
-          <Pressable style={styles.panel} onPress={() => {}}>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {open === 'city' ? (
-                <>
-                  <Option label={t.allCities} selected={!city} onPress={() => choose('city', '')} />
-                  {searchCities.map((item) => (
-                    <Option
-                      key={item}
-                      label={item}
-                      selected={city === item}
-                      onPress={() => choose('city', item)}
-                    />
-                  ))}
-                </>
-              ) : null}
-              {open === 'sort' ? (
-                <>
-                  <Option label={t.newest} selected={!sort || sort === 'newest'} onPress={() => choose('sort', 'newest')} />
-                  <Option label={t.priceLow} selected={sort === 'price-asc'} onPress={() => choose('sort', 'price-asc')} />
-                  <Option label={t.priceHigh} selected={sort === 'price-desc'} onPress={() => choose('sort', 'price-desc')} />
-                </>
-              ) : null}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <BottomSheet visible={open === 'city' || open === 'sort'} onClose={() => setOpen(null)}>
+        <ScrollView keyboardShouldPersistTaps="handled">
+          {open === 'city' ? (
+            <>
+              <Option label={t.allCities} selected={!city} onPress={() => choose('city', '')} />
+              {searchCities.map((item) => (
+                <Option
+                  key={item}
+                  label={item}
+                  selected={city === item}
+                  onPress={() => choose('city', item)}
+                />
+              ))}
+            </>
+          ) : null}
+          {open === 'sort' ? (
+            <>
+              <Option label={t.newest} selected={!sort || sort === 'newest'} onPress={() => choose('sort', 'newest')} />
+              <Option label={t.priceLow} selected={sort === 'price-asc'} onPress={() => choose('sort', 'price-asc')} />
+              <Option label={t.priceHigh} selected={sort === 'price-desc'} onPress={() => choose('sort', 'price-desc')} />
+            </>
+          ) : null}
+        </ScrollView>
+      </BottomSheet>
     </>
   );
 }
@@ -224,18 +221,6 @@ const styles = StyleSheet.create({
   },
   drawerRest: {
     flex: 1,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(23, 40, 32, 0.28)',
-    justifyContent: 'flex-end',
-  },
-  panel: {
-    maxHeight: '70%',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    overflow: 'hidden',
   },
   subs: {
     backgroundColor: '#f7f9f3',

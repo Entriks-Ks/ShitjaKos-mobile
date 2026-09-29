@@ -1,5 +1,6 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheet } from '@/components/BottomSheet';
 import { homeColors } from '@/constants/home';
 
 const reasons = ['Çmim i rremë', 'Produkt i ndaluar', 'Mashtrim', 'Tjetër'];
@@ -14,36 +15,28 @@ export function ReportSheet({
   onSubmit: (reason: string) => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          <Text style={styles.title}>Raporto problemin</Text>
-          {reasons.map((reason) => (
-            <Pressable key={reason} style={styles.row} onPress={() => onSubmit(reason)}>
-              <Text style={styles.reason}>{reason}</Text>
-            </Pressable>
-          ))}
-          <Pressable style={styles.cancel} onPress={onClose}>
-            <Text style={styles.cancelText}>Anulo</Text>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={styles.sheet}>
+        <Text style={styles.title}>Raporto problemin</Text>
+        {reasons.map((reason) => (
+          <Pressable key={reason} style={styles.row} onPress={() => onSubmit(reason)}>
+            <Text style={styles.reason}>{reason}</Text>
           </Pressable>
+        ))}
+        <Pressable style={styles.cancel} onPress={onClose}>
+          <Text style={styles.cancelText}>Anulo</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(23, 40, 32, 0.35)',
-    justifyContent: 'flex-end',
-  },
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    padding: 16,
-    paddingBottom: 28,
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 18,

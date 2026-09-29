@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 
+import { setApiToken, setUnauthorizedHandler } from './api';
 import { authErrorMessage } from './auth-error';
 import { authStorage } from './auth-storage';
 import { apiBaseUrl, authOrigin } from './config';
@@ -52,12 +53,23 @@ async function storedToken() {
 }
 
 async function saveToken(token?: string) {
+  setApiToken(token ?? '');
   if (token) {
     await authStorage.setItemAsync(TOKEN_KEY, token);
     return;
   }
   await authStorage.deleteItemAsync(TOKEN_KEY);
 }
+
+export async function forgetSession() {
+  await saveToken();
+  snapshot = { data: null, isPending: false };
+  emit();
+}
+
+setUnauthorizedHandler(() => {
+  void forgetSession();
+});
 
 async function mobileAuth(
   action: string,

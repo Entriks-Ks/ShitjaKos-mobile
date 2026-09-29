@@ -1,171 +1,174 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
+  useWindowDimensions,
   View,
+  type ImageSourcePropType,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppIcon, type AppIconName } from '@/components/AppIcon';
-import { homeCategories, homeColors, homeCopy, type HomeLocale } from '@/constants/home';
-import { demoListings, formatPrice, listingCountLabel } from '@/constants/listings';
+import { AppIcon } from '@/components/AppIcon';
+import { ProductCard } from '@/components/ProductCard';
+import { SearchBar } from '@/components/SearchBar';
+import { categoryPhoto, homeCategories, homeColors, homeCopy, type HomeLocale } from '@/constants/home';
+import type { DemoListing } from '@/constants/listings';
+import { groupCategories, loadCategories, searchListings } from '@/lib/market';
+import { useSaved } from '@/lib/saved';
 
 export default function HomeScreen() {
-  const [locale, setLocale] = useState<HomeLocale>('sq');
-  const [saved, setSaved] = useState<string[]>([]);
+  const locale: HomeLocale = 'sq';
   const t = homeCopy[locale];
+  const { width } = useWindowDimensions();
+  const pageWidth = Math.min(width, 430);
+  const cardWidth = Math.floor((pageWidth - 32 - 32) / 3);
+  const [query, setQuery] = useState('');
+  const { isSaved, toggleSaved } = useSaved();
+  const [products, setProducts] = useState<DemoListing[]>([]);
+  const [categories, setCategories] = useState<{ id: string; label: string; image: ImageSourcePropType }[]>(
+    homeCategories.map((item) => ({ id: item.id, label: item.label[locale], image: item.image })),
+  );
+  const [heroBox, setHeroBox] = useState({ width: 0, height: 0 });
+  const heroImageWidth = heroBox.height * (1200 / 490);
+  const heroImageLeft = (heroBox.width - heroImageWidth) * 0.8;
+  useEffect(() => {
+    let cancel = false;
+    loadCategories()
+      .then((items) => {
+        const groups = groupCategories(items, locale);
+        if (!cancel && groups.length) {
+          setCategories(groups.map((group) => ({ id: group.id, label: group.label, image: categoryPhoto(group.id) })));
+        }
+      })
+      .catch(() => {});
+    searchListings({ sort: 'newest', limit: 12 })
+      .then((items) => {
+        if (!cancel) setProducts(items);
+      })
+      .catch(() => {
+        if (!cancel) setProducts([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
 
-  function toggleSaved(id: string) {
-    setSaved((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+  function openBrowse(extra?: { q?: string; category?: string }) {
+    const nextQuery = extra?.q ?? query.trim();
+    const nextCategory = extra?.category ?? '';
+    router.push(
+      `/search?q=${encodeURIComponent(nextQuery)}&category=${encodeURIComponent(nextCategory)}` as Href,
     );
   }
 
   return (
     <View style={styles.shell}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.masthead}>
-          <SafeAreaView style={styles.top} edges={['top']}>
-            <View style={styles.header}>
-              <Text style={styles.brand}>
-                shitja<Text style={styles.brandKos}>kos</Text>
-                <Text style={styles.brandDot}>.</Text>
-              </Text>
-            </View>
-          </SafeAreaView>
-
-          <View style={styles.hero}>
-            <View style={styles.langs}>
-              {(['sq', 'en', 'de'] as const).map((item, index) => (
-                <View key={item} style={styles.langRow}>
-                  {index > 0 ? <Text style={styles.langDivider}>|</Text> : null}
-                  <Pressable onPress={() => setLocale(item)}>
-                    <Text style={[styles.lang, locale === item && styles.langActive]}>
-                      {item.toUpperCase()}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.art} pointerEvents="none">
-              <View style={[styles.artCard, styles.artSofa]}>
-                <AppIcon name="sofa" size={34} color={homeColors.leaf} />
-              </View>
-              <View style={[styles.artCard, styles.artLaptop]}>
-                <AppIcon name="laptop" size={30} color={homeColors.leaf} />
-              </View>
-            </View>
-
-            <Text style={styles.headline}>
-              {t.headline}
-              {'\n'}
-              <Text style={styles.subhead}>{t.subhead}</Text>
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.content}>
+        <SafeAreaView edges={['top']} style={styles.headerWrap}>
+          <View style={styles.header}>
+            <Text style={styles.brand}>
+              shitja<Text style={styles.brandKos}>kos</Text><Text style={styles.brandDot}>.</Text>
             </Text>
-            <Text style={styles.intro}>{t.intro}</Text>
-
-            <Pressable style={styles.search} onPress={() => router.push('/search')}>
-              <AppIcon name="search" size={18} color={homeColors.muted} />
-              <TextInput
-                editable={false}
-                pointerEvents="none"
-                placeholder={t.search}
-                placeholderTextColor={homeColors.muted}
-                style={styles.searchInput}
-              />
-              <AppIcon name="sliders" size={18} color={homeColors.forest} />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.categories}>
-          <Text style={styles.categoryTitle}>{t.categories}</Text>
-          <ScrollView
-            horizontal
-            nestedScrollEnabled
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryRow}>
-            {homeCategories.map((category) => (
-              <Pressable
-                key={category.id}
-                style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
-                onPress={() => router.push('/search')}>
-                <View style={styles.tileIcon}>
-                  <AppIcon name={category.icon as AppIconName} size={18} color={homeColors.icon} />
-                </View>
-                <Text numberOfLines={2} style={styles.tileLabel}>
-                  {category.label[locale]}
-                </Text>
+            <View style={styles.headerActions}>
+              <Pressable hitSlop={8} onPress={() => router.push('/(tabs)/profile' as Href)}>
+                <AppIcon name="personOutline" size={22} color="#1c1c1c" />
               </Pressable>
-            ))}
-            <Pressable
-              style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
-              onPress={() => router.push('/search')}>
-              <View style={styles.tileIcon}>
-                <AppIcon name="plus" size={18} color={homeColors.icon} />
-              </View>
-              <Text style={styles.tileLabel}>{t.all}</Text>
-            </Pressable>
-          </ScrollView>
+              <Pressable hitSlop={8} onPress={() => router.push('/cart' as Href)}>
+                <AppIcon name="heartOutline" size={22} color="#1c1c1c" />
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+
+        <View
+          style={styles.hero}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            setHeroBox({ width, height });
+          }}>
+          <View style={styles.heroArt} pointerEvents="none">
+            {heroBox.height > 0 ? (
+              <Image
+                source={require('@/assets/images/main-image-made.jpg')}
+                resizeMode="cover"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: heroImageLeft,
+                  width: heroImageWidth,
+                  height: heroBox.height,
+                }}
+              />
+            ) : null}
+          </View>
+          <Text style={styles.headline}>
+            {t.headline}
+            {'\n'}
+            <Text style={styles.subhead}>{t.subhead}</Text>
+          </Text>
+          <Text style={styles.heroText}>{t.intro}</Text>
+          <View style={styles.heroSearch}>
+            <SearchBar
+              locale={locale}
+              query={query}
+              onQueryChange={setQuery}
+              onSubmit={() => openBrowse()}
+            />
+          </View>
         </View>
 
-        <View style={styles.listings}>
-          <Text style={styles.eyebrow}>{t.discoverEyebrow}</Text>
-          <View style={styles.listingsHead}>
-            <Text style={styles.sectionTitle}>{t.discover}</Text>
-            <Text style={styles.count}>{listingCountLabel(demoListings.length, locale)}</Text>
-          </View>
-          <View style={styles.listingGrid}>
-            {demoListings.map((listing) => {
-              const liked = saved.includes(listing.id);
-              return (
-                <Pressable
-                  key={listing.id}
-                  style={styles.card}
-                  onPress={() => router.push('/search')}>
-                  <View style={styles.cardImage}>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{listing.seller[locale]}</Text>
-                    </View>
-                    <Pressable
-                      style={styles.heart}
-                      onPress={() => toggleSaved(listing.id)}
-                      hitSlop={8}>
-                      <AppIcon
-                        name={liked ? 'heart' : 'heartOutline'}
-                        size={16}
-                        color={liked ? '#c45b4b' : homeColors.forest}
-                      />
-                    </Pressable>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardCategory} numberOfLines={1}>
-                      {listing.category[locale].toUpperCase()}
-                    </Text>
-                    <Text style={styles.cardTitle} numberOfLines={2}>
-                      {listing.title}
-                    </Text>
-                    <Text style={styles.cardPrice}>{formatPrice(listing.price)}</Text>
-                    <View style={styles.cardMeta}>
-                      <View style={styles.city}>
-                        <AppIcon name="pin" size={12} color={homeColors.muted} />
-                        <Text style={styles.cityText}>{listing.city}</Text>
-                      </View>
-                      <AppIcon name="arrowUpRight" size={14} color={homeColors.muted} />
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>{t.popular}</Text>
+          <Pressable onPress={() => openBrowse({ q: '', category: '' })}>
+            <Text style={styles.seeAll}>{t.seeAll}</Text>
+          </Pressable>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>
+          {categories.map((item) => (
+            <Pressable
+              key={item.id}
+              style={styles.category}
+              onPress={() => openBrowse({ q: '', category: item.id })}>
+              <View style={styles.categoryIcon}>
+                <Image source={item.image} style={styles.categoryImage} resizeMode="cover" />
+              </View>
+              <Text style={styles.categoryLabel} numberOfLines={2}>
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>{t.recommended}</Text>
+          <Pressable onPress={() => openBrowse()}>
+            <Text style={styles.seeAll}>{t.seeAll}</Text>
+          </Pressable>
+        </View>
+        {products.length ? (
+          <View style={styles.products}>
+            {products.map((listing) => (
+              <ProductCard
+                key={listing.id}
+                listing={listing}
+                locale={locale}
+                width={cardWidth}
+                liked={isSaved(listing.id)}
+                onPress={() => router.push(`/listing/${listing.id}` as Href)}
+                onToggleSaved={() => toggleSaved(listing.id)}
+              />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.empty}>{t.noResults}</Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -174,302 +177,166 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: homeColors.cream,
+    backgroundColor: '#fff',
     maxWidth: 430,
     width: '100%',
     alignSelf: 'center',
   },
-  masthead: {
-    backgroundColor: homeColors.mint,
+  content: {
+    paddingBottom: 28,
   },
-  top: {
-    backgroundColor: homeColors.forest,
+  headerWrap: {
+    backgroundColor: '#fff',
   },
   header: {
-    backgroundColor: homeColors.forest,
-    paddingHorizontal: 18,
-    paddingBottom: 12,
-    paddingTop: 8,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   brand: {
-    color: '#f3f7ee',
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontFamily: 'GeistExtraBold',
+    fontSize: 29,
+    lineHeight: 44,
+    color: '#1f302a',
+    letterSpacing: -1.6,
+    paddingRight: 2,
   },
   brandKos: {
-    color: '#f3f7ee',
+    fontFamily: 'GeistExtraBold',
+    color: '#39875c',
   },
   brandDot: {
+    fontFamily: 'GeistExtraBold',
     color: '#b2cb6b',
   },
-  search: {
-    marginTop: 20,
-    width: '100%',
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#f2f4f1',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 50,
-  },
-  searchInput: {
-    flex: 1,
-    color: homeColors.ink,
-    fontSize: 15,
-    textAlign: 'left',
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: homeColors.cream,
-  },
-  content: {
-    paddingBottom: 36,
+    gap: 14,
   },
   hero: {
-    backgroundColor: homeColors.mint,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 22,
+    marginHorizontal: 16,
+    marginTop: 2,
+    borderRadius: 22,
+    backgroundColor: '#e8e2d4',
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    gap: 10,
+    minHeight: 250,
     overflow: 'hidden',
   },
-  langs: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  langRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lang: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#8aa090',
-    letterSpacing: 0.4,
-  },
-  langActive: {
-    color: homeColors.forest,
-  },
-  langDivider: {
-    marginHorizontal: 8,
-    color: '#b7c4b8',
-    fontSize: 11,
-  },
-  art: {
+  heroArt: {
     position: 'absolute',
-    right: 8,
-    top: 42,
-    width: 150,
-    height: 130,
-  },
-  artCard: {
-    position: 'absolute',
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  artSofa: {
-    right: 8,
     top: 0,
-    width: 88,
-    height: 92,
-    backgroundColor: '#c5d59a',
-    transform: [{ rotate: '8deg' }],
-  },
-  artLaptop: {
-    right: 62,
-    top: 48,
-    width: 84,
-    height: 72,
-    backgroundColor: '#f7f4ea',
-    transform: [{ rotate: '-8deg' }],
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
   },
   headline: {
-    marginTop: 12,
-    maxWidth: 230,
+    marginTop: 6,
+    fontFamily: 'GeistSemiBold',
     fontSize: 32,
     lineHeight: 36,
-    fontWeight: '800',
-    color: homeColors.ink,
-    letterSpacing: -0.9,
+    letterSpacing: -1.44,
+    color: '#1f302a',
+    paddingRight: 2,
   },
   subhead: {
-    color: '#3f7a55',
+    fontFamily: 'GeistSemiBold',
+    color: '#48805d',
   },
-  intro: {
-    marginTop: 10,
-    maxWidth: 250,
-    color: homeColors.muted,
-    fontSize: 13,
-    lineHeight: 19,
+  heroText: {
+    marginTop: 'auto',
+    color: '#5c6b62',
+    fontSize: 11,
+    lineHeight: 14,
+    maxWidth: 220,
   },
-  categories: {
-    backgroundColor: homeColors.paper,
-    paddingTop: 22,
-    paddingBottom: 8,
+  heroSearch: {
+    marginTop: 8,
+    marginHorizontal: -10,
   },
-  categoryTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: homeColors.ink,
-    letterSpacing: -0.4,
+  sectionHead: {
+    marginTop: 22,
+    marginBottom: 12,
     paddingHorizontal: 16,
-    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sectionTitle: {
-    flex: 1,
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
-    color: homeColors.ink,
-    letterSpacing: -0.4,
+    color: '#1c1c1c',
   },
-  categoryRow: {
-    paddingHorizontal: 16,
-    gap: 10,
-    paddingBottom: 8,
-  },
-  tile: {
-    width: 168,
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: homeColors.line,
-    borderRadius: 14,
-  },
-  tilePressed: {
-    backgroundColor: '#f4f7ee',
-  },
-  tileIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: homeColors.iconWash,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileLabel: {
-    flex: 1,
-    color: homeColors.ink,
+  seeAll: {
+    color: '#1f6b45',
     fontSize: 13,
     fontWeight: '700',
-    lineHeight: 17,
   },
-  listings: {
-    backgroundColor: homeColors.cream,
+  categories: {
     paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 8,
+    gap: 14,
   },
-  eyebrow: {
+  category: {
+    width: 84,
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: '#f4f6f3',
+    overflow: 'hidden',
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryLabel: {
+    textAlign: 'center',
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: homeColors.leaf,
-    marginBottom: 6,
-  },
-  listingsHead: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 14,
-  },
-  count: {
-    color: homeColors.muted,
-    fontSize: 13,
     fontWeight: '600',
+    color: '#243128',
+    lineHeight: 14,
   },
-  listingGrid: {
+  products: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    paddingHorizontal: 16,
+    gap: 16,
   },
-  card: {
-    width: '48%',
-    flexGrow: 1,
-    flexBasis: '47%',
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(23, 40, 32, 0.35)',
+    justifyContent: 'flex-start',
+    paddingTop: 88,
+    paddingHorizontal: 16,
+  },
+  menu: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: homeColors.line,
+    borderRadius: 16,
+    padding: 8,
   },
-  cardImage: {
-    height: 132,
-    backgroundColor: '#e7ece3',
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
   },
-  badge: {
-    position: 'absolute',
-    left: 10,
-    top: 10,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    fontSize: 10,
+  menuText: {
+    fontSize: 15,
     fontWeight: '700',
     color: homeColors.ink,
   },
-  heart: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardBody: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  cardCategory: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+  empty: {
+    paddingHorizontal: 16,
     color: homeColors.muted,
-    marginBottom: 4,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: homeColors.ink,
-    lineHeight: 18,
-    minHeight: 36,
-  },
-  cardPrice: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '800',
-    color: homeColors.forest,
-  },
-  cardMeta: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  city: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  cityText: {
-    color: homeColors.muted,
-    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -34,7 +34,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ShitjaKos uses your photos so you can add them to a listing."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

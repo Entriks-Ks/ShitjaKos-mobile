@@ -13,13 +13,13 @@ export default function TabLayout() {
         tabBarActiveTintColor: homeColors.forest,
         tabBarInactiveTintColor: homeColors.tabIdle,
         sceneStyle: {
-          backgroundColor: homeColors.cream,
+          backgroundColor: '#fff',
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Shtëpia',
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name={focused ? 'house' : 'houseOutline'} size={23} color={color} />
           ),
@@ -28,20 +28,20 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Kërko',
-          tabBarIcon: ({ color }) => <AppIcon name="search" size={23} color={color} />,
+          title: 'Kategoritë',
+          tabBarIcon: ({ color }) => <AppIcon name="grid" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="publish"
         options={{
-          title: 'Shitet',
+          title: '',
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Chat',
+          title: 'Mesazhet',
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name={focused ? 'bubble' : 'bubbleOutline'} size={23} color={color} />
           ),

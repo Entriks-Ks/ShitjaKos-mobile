@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon } from '@/components/AppIcon';
 import { homeColors } from '@/constants/home';
+import { useInbox } from '@/lib/inbox';
 
 type AppTabBarProps = {
   state: {
@@ -30,6 +31,7 @@ type AppTabBarProps = {
 export function AppTabBar({ state, descriptors, navigation }: AppTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, 6);
+  const { unreadCount } = useInbox();
 
   return (
     <View style={[styles.bar, { paddingBottom: bottom }]}>
@@ -56,16 +58,22 @@ export function AppTabBar({ state, descriptors, navigation }: AppTabBarProps) {
             return (
               <Pressable key={route.key} onPress={onPress} style={styles.sellSlot}>
                 <View style={styles.sellButton}>
-                  <AppIcon name="plus" size={20} color="#fff" />
+                  <AppIcon name="plus" size={26} color="#fff" />
                 </View>
-                <Text style={styles.sellLabel}>{label}</Text>
               </Pressable>
             );
           }
 
           return (
             <Pressable key={route.key} onPress={onPress} style={styles.tab}>
-              {options.tabBarIcon?.({ focused, color, size: 24 })}
+              <View>
+                {options.tabBarIcon?.({ focused, color, size: 24 })}
+                {route.name === 'messages' && unreadCount > 0 ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={[styles.label, focused && styles.labelActive]}>{label}</Text>
             </Pressable>
           );
@@ -102,24 +110,40 @@ const styles = StyleSheet.create({
   labelActive: {
     color: homeColors.forest,
   },
-  sellSlot: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 3,
-    paddingBottom: 2,
-  },
-  sellButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: homeColors.forest,
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    backgroundColor: '#c45b4b',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sellLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: homeColors.forest,
+  badgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  sellSlot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sellButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginTop: -28,
+    backgroundColor: '#24543d',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#173f35',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
 });
